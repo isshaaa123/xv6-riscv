@@ -5,6 +5,7 @@
 #include "riscv.h"
 #include "defs.h"
 #include "fs.h"
+#include "proc.h"
 
 /*
  * the kernel's page table.
@@ -448,4 +449,34 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   } else {
     return -1;
   }
+}
+
+int mprotect(void *addr, int len) {
+    pagetable_t pagetable = myproc()->pagetable;
+    uint64 a;  // Define 'a' como 'uint64'
+    pte_t *pte;
+
+    for (a = PGROUNDDOWN((uint64)addr); a < (uint64)addr + len * PGSIZE; a += PGSIZE) {
+        pte = walk(pagetable, a, 0);  // 'a' ahora es de tipo 'uint64'
+        if (!pte || !(*pte & PTE_V)) {
+            return -1; // Error si la página no está presente
+        }
+        *pte &= ~PTE_W; // Desactiva el bit de escritura
+    }
+    return 0;
+}
+
+int munprotect(void *addr, int len) {
+    pagetable_t pagetable = myproc()->pagetable;
+    uint64 a;  // Define 'a' como 'uint64'
+    pte_t *pte;
+
+    for (a = PGROUNDDOWN((uint64)addr); a < (uint64)addr + len * PGSIZE; a += PGSIZE) {
+        pte = walk(pagetable, a, 0);  // 'a' ahora es de tipo 'uint64'
+        if (!pte || !(*pte & PTE_V)) {
+            return -1; // Error si la página no está presente
+        }
+        *pte |= PTE_W; // Activa el bit de escritura
+    }
+    return 0;
 }

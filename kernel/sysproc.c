@@ -130,6 +130,9 @@ sys_getancestor(void) {
 
 extern int set_priority(int pid, int priority);
 extern int set_boost(int pid, int boost);
+extern int mprotect(void *addr, int len);
+extern int munprotect(void *addr, int len);
+
 
 uint64
 sys_setpriority(void) {
@@ -153,4 +156,26 @@ sys_setboost(void) {
     
     // Llamar a la función interna del kernel
     return (uint64)set_boost(pid, boost);
+}
+
+int sys_mprotect(void) {
+    uint64 addr;
+    int len;
+
+    // Obtener los argumentos
+    argaddr(0, &addr);  // Usa argaddr para la dirección
+    argint(1, &len);
+
+    return mprotect((void *)addr, len);
+}
+
+int sys_munprotect(void) {
+    uint64 addr;
+    int len;
+
+    // Obtener los argumentos
+    argaddr(0, &addr);  // Usa argaddr para la dirección
+    argint(1, &len);
+
+    return munprotect((void *)addr, len);
 }
