@@ -63,10 +63,13 @@ usertrap(void)
     // an interrupt will change sepc, scause, and sstatus,
     // so enable only now that we're done with those registers.
     intr_on();
-
     syscall();
-  } else if((which_dev = devintr()) != 0){
-    // ok
+} else if(r_scause() == 15) {
+    printf("PID=%d\n", p->pid);
+    p->killed = 1;
+} else if((which_dev = devintr()) != 0) {  
+
+   // ok
   } else {
     printf("usertrap(): unexpected scause 0x%lx pid=%d\n", r_scause(), p->pid);
     printf("            sepc=0x%lx stval=0x%lx\n", r_sepc(), r_stval());

@@ -158,12 +158,13 @@ sys_setboost(void) {
     return (uint64)set_boost(pid, boost);
 }
 
+
 int sys_mprotect(void) {
     uint64 addr;
     int len;
 
-    // Obtener los argumentos
-    argaddr(0, &addr);  // Usa argaddr para la dirección
+    // Asignación sin comparación de retorno
+    argaddr(0, &addr);
     argint(1, &len);
 
     return mprotect((void *)addr, len);
@@ -173,8 +174,8 @@ int sys_munprotect(void) {
     uint64 addr;
     int len;
 
-    // Obtener los argumentos
-    argaddr(0, &addr);  // Usa argaddr para la dirección
+    // Asignación sin comparación de retorno
+    argaddr(0, &addr);
     argint(1, &len);
 
     return munprotect((void *)addr, len);

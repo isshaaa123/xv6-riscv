@@ -37,3 +37,5 @@ entry("sbrk");
 entry("sleep");
 entry("uptime");
 entry("getppid");
+entry("mprotect");
+entry("munprotect");

@@ -7,6 +7,7 @@
 #include "fs.h"
 #include "proc.h"
 
+
 /*
  * the kernel's page table.
  */
@@ -451,32 +452,43 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   }
 }
 
-int mprotect(void *addr, int len) {
-    pagetable_t pagetable = myproc()->pagetable;
-    uint64 a;  // Define 'a' como 'uint64'
-    pte_t *pte;
 
-    for (a = PGROUNDDOWN((uint64)addr); a < (uint64)addr + len * PGSIZE; a += PGSIZE) {
-        pte = walk(pagetable, a, 0);  // 'a' ahora es de tipo 'uint64'
-        if (!pte || !(*pte & PTE_V)) {
-            return -1; // Error si la página no está presente
-        }
-        *pte &= ~PTE_W; // Desactiva el bit de escritura
+
+// Función mprotect
+int mprotect(void *addr, int len) {
+    if (addr == 0 || len <= 0) return -1;  // Validación de argumentos
+    uint64 addr_aligned = PGROUNDDOWN((uint64) addr);  // Alinear dirección al inicio de página
+    uint64 end_addr = (uint64) addr + len * PGSIZE;    // Dirección final de la región
+    for (uint64 a = addr_aligned; a < end_addr; a += PGSIZE) {
+        pte_t *pte = walk(myproc()->pagetable, a, 0);  // Obtención de la PTE sin crear una nueva
+        if (!pte || (*pte & PTE_V) == 0)  // Verificar que PTE es válida y presente
+            return -1;
+        *pte &= ~PTE_W;  // Desactivar el bit de escritura para solo lectura
     }
+    sfence_vma();  // Recargar TLB en RISC-V
     return 0;
 }
 
+//Función munprotect
 int munprotect(void *addr, int len) {
-    pagetable_t pagetable = myproc()->pagetable;
-    uint64 a;  // Define 'a' como 'uint64'
-    pte_t *pte;
 
-    for (a = PGROUNDDOWN((uint64)addr); a < (uint64)addr + len * PGSIZE; a += PGSIZE) {
-        pte = walk(pagetable, a, 0);  // 'a' ahora es de tipo 'uint64'
-        if (!pte || !(*pte & PTE_V)) {
-            return -1; // Error si la página no está presente
-        }
-        *pte |= PTE_W; // Activa el bit de escritura
+    if (addr == 0 || len <= 0) return -1;  // Validación de argumentos
+
+    uint64 addr_aligned = PGROUNDDOWN((uint64) addr);  // Alinear dirección a inicio de página
+
+    uint64 end_addr = (uint64) addr + len * PGSIZE;    // Dirección final de la región
+
+    for (uint64 a = addr_aligned; a < end_addr; a += PGSIZE) {
+
+        pte_t *pte = walk(myproc()->pagetable, a, 0);  // PTE sin crear una nueva
+
+        if (!pte || (*pte & PTE_V) == 0)  // Verificar que PTE es válida y esta presente
+
+            return -1;
+
+        *pte |= PTE_W;  // Activar el bit de escritura para lectura/escritura
+
     }
+
     return 0;
 }
