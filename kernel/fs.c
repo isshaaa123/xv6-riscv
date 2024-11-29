@@ -136,14 +136,14 @@ bfree(int dev, uint b)
 //   creates a table entry and increments its ref; iput()
 //   decrements ref.
 //
-// * Valid: the information (type, size, &c) in an inode
+// * Valid: the information (type, size, &c) in an winode
 //   table entry is only correct when ip->valid is 1.
 //   ilock() reads the inode from
 //   the disk and sets ip->valid, while iput() clears
 //   ip->valid if ip->ref has fallen to zero.
 //
 // * Locked: file system code may only examine and modify
-//   the information in an inode and its content if it
+//   the information in an winode and its content if it
 //   has first locked the inode.
 //
 // Thus a typical sequence is:
@@ -201,7 +201,7 @@ ialloc(uint dev, short type)
   int inum;
   struct buf *bp;
   struct dinode *dip;
-
+  struct inode  *ip;
   for(inum = 1; inum < sb.ninodes; inum++){
     bp = bread(dev, IBLOCK(inum, sb));
     dip = (struct dinode*)bp->data + inum%IPB;
@@ -210,7 +210,9 @@ ialloc(uint dev, short type)
       dip->type = type;
       log_write(bp);   // mark it allocated on the disk
       brelse(bp);
-      return iget(dev, inum);
+      ip =  iget(dev,inum);
+      ip->permissions = 3;
+      return ip;
     }
     brelse(bp);
   }
@@ -694,4 +696,32 @@ struct inode*
 nameiparent(char *path, char *name)
 {
   return namex(path, 1, name);
+}
+
+int chmod(char *path, int mode) {
+  struct inode *ip = 0; // Inicializar ip a un puntero nulo
+  if (mode < 0 || mode > MAX_PERM) {
+      // No necesitas iunlockput aquí, porque ip no está inicializada aún
+      end_op();
+      return -1;
+  }
+
+  begin_op();
+  if ((ip = namei(path)) == 0) {
+      end_op();
+      return -1; // Archivo no encontrado
+  }
+
+  ilock(ip);
+  if (ip->permissions == 5) { // Verifica si es inmutable
+      iunlockput(ip);
+      end_op();
+      return -1;
+  }
+
+  ip->permissions = mode; // Cambiar permisos
+  iupdate(ip);     // Actualizar en disco
+  iunlockput(ip);
+  end_op();
+  return 0; // Éxito
 }
